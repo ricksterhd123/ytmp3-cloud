@@ -4,6 +4,13 @@ Transform: AWS::Serverless-2016-10-31
 Description: ytmp3 cloud
 
 Resources:
+  Ytmp3DownloaderRepository: 
+    Type: AWS::ECR::Repository
+    Properties: 
+      RepositoryName: "ytmp3-downloader"
+      ImageScanningConfiguration: 
+        ScanOnPush: true
+
   Ytmp3Downloader:
     Type: AWS::Serverless::Function
     Properties:
