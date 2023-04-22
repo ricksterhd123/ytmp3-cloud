@@ -8,6 +8,7 @@ set -e
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
 ECR_REPO_NAME="ytmp3-downloader"
+YTMP3_STORE_BUCKET_NAME="bpmqrjcb"
 
 if ! aws ecr create-repository --repository-name $ECR_REPO_NAME; then
     ## FIXME: Can't find a better way to check if repository already exists,
@@ -40,4 +41,4 @@ YTMP3_DOWNLOADER_DOCKER_IMAGE_URI=$(docker inspect --format='{{index .RepoDigest
 
 ## Build the template and deploy guided
 sam build
-sam deploy --guided --parameter-overrides Ytmp3DownloaderDockerImageUri=$YTMP3_DOWNLOADER_DOCKER_IMAGE_URI
+sam deploy --guided --parameter-overrides Ytmp3DownloaderDockerImageUri=$YTMP3_DOWNLOADER_DOCKER_IMAGE_URI Ytmp3StoreBucketName=$YTMP3_STORE_BUCKET_NAME
