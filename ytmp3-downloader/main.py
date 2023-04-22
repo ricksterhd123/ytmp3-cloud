@@ -1,9 +1,8 @@
 import logging
 import os
-from yt_dlp import YoutubeDL
 import boto3
-import os
-import logging
+
+from yt_dlp import YoutubeDL
 from botocore.exceptions import ClientError
 
 logger = logging.getLogger('mp3-downloader')
@@ -11,7 +10,9 @@ logger.setLevel(logging.INFO)
 
 YTMP3_STORE_BUCKET_NAME = os.environ.get('YTMP3_STORE_BUCKET_NAME')
 if not YTMP3_STORE_BUCKET_NAME:
-    raise Exception("Expected YTMP3_STORE_BUCKET_NAME environment variable but got None")
+    raise Exception(
+        "Expected YTMP3_STORE_BUCKET_NAME environment variable but got None")
+
 
 def upload_file(file_name, bucket, object_name=None):
     """Upload a file to an S3 bucket
@@ -67,7 +68,9 @@ def handler(event, context):
 
     try:
         with YoutubeDL(ydl_opts) as ydl:
-            info_dict = ydl.sanitize_info(ydl.extract_info(url, download=False))
+            info_dict = ydl.sanitize_info(
+                ydl.extract_info(url, download=False)
+                )
             video_id = info_dict.get("display_id", None)
             duration = info_dict.get("duration", None)
             file_name = f"{video_id}.mp3"
@@ -75,7 +78,8 @@ def handler(event, context):
             logger.info(f"Video ID: {video_id}, Duration: {duration}")
 
             if not duration:
-                logger.warning(f"Video ID: {video_id} has no duration metadata")
+                logger.warning(
+                    f"Video ID: {video_id} has no duration metadata")
                 logger.error(
                     "Cannot find duration in metadata. Are you sure this is a YouTube video?")
                 return {
@@ -85,7 +89,7 @@ def handler(event, context):
 
             ydl.download([url])
             upload_file(f"{file_path}/{file_name}",
-                                YTMP3_STORE_BUCKET_NAME, file_name)
+                        YTMP3_STORE_BUCKET_NAME, file_name)
     except Exception as e:
         logger.error(e)
         return {

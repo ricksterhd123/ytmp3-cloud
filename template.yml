@@ -13,11 +13,58 @@ Parameters:
     Description: Name of ytmp3-store bucket (must be unique)
 
 Resources:
+  Ytmp3DownloaderQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: "ytmp3-downloader-queue"
+      VisibilityTimeout: 300
+
+  Ytmp3DownloaderQueuePolicy: 
+    Type: AWS::SQS::QueuePolicy
+    Properties: 
+      Queues: 
+        - !Ref Ytmp3DownloaderQueue
+      PolicyDocument: 
+        Statement: 
+          - 
+            Action: 
+              - "SQS:*" 
+            Effect: "Allow"
+            Resource: !GetAtt Ytmp3Downloader.Arn     
+
   Ytmp3Store:
     Type: "AWS::S3::Bucket"
-    DeletionPolicy: Retain
     Properties:
       BucketName: !Ref Ytmp3StoreBucketName
+
+  Ytmp3DownloaderRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: ytmp3-downloader-role-policy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: "s3:*"
+                Resource: !GetAtt Ytmp3Store.Arn
+              - Effect: Allow
+                Action: 
+                  - "sqs:ReceiveMessage"
+                  - "sqs:DeleteMessage"
+                  - "sqs:GetQueueAttributes"
+                Resource: !GetAtt Ytmp3DownloaderQueue.Arn
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 
   Ytmp3Downloader:
     Type: AWS::Serverless::Function
@@ -25,19 +72,61 @@ Resources:
       PackageType: Image
       ImageUri: !Ref Ytmp3DownloaderDockerImageUri
       Timeout: 300
+      Role: !GetAtt Ytmp3DownloaderRole.Arn
+      Events:
+        SqsEvent:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt Ytmp3DownloaderQueue.Arn
       Environment:
         Variables:
           YTMP3_STORE_BUCKET_NAME: !Ref Ytmp3StoreBucketName
 
+  Ytmp3DispatcherRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: ytmp3-downloader-role-policy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: "sqs:*"
+                Resource: !GetAtt Ytmp3DownloaderQueue.Arn
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+
+  Ytmp3Dispatcher:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Zip
+      CodeUri: ytmp3-dispatcher/
+      Handler: main.handler
+      Runtime: python3.9
+      Timeout: 300
+      Role: !GetAtt Ytmp3DispatcherRole.Arn
+      Environment:
+        Variables:
+          YTMP3_DOWNLOADER_QUEUE: !GetAtt Ytmp3DownloaderQueue.Arn
+
   Ytmp3Api:
     Type: AWS::ApiGatewayV2::Api
     Properties:
-      Name: Ytmp3Downloader
+      Name: Ytmp3CloudApi
       Description: REST API for ytmp3-cloud
       ProtocolType: HTTP
       Version: v1.0.0
 
-  Ytmp3ApiDownloaderIntegration:
+  Ytmp3ApiDispatcherIntegration:
     Type: AWS::ApiGatewayV2::Integration
     Properties:
       ApiId: !Ref Ytmp3Api
@@ -50,12 +139,12 @@ Resources:
           - ":apigateway:"
           - !Ref "AWS::Region"
           - ":lambda:path/2015-03-31/functions/"
-          - !GetAtt Ytmp3Downloader.Arn
+          - !GetAtt Ytmp3Dispatcher.Arn
           - "/invocations"
       IntegrationMethod: POST
       PayloadFormatVersion: "2.0"
 
-  Ytmp3ApiDownloaderRoute:
+  Ytmp3ApiDispatcherRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
       ApiId: !Ref Ytmp3Api
@@ -63,7 +152,7 @@ Resources:
       Target: !Join
         - ""
         - - "integrations/"
-          - !Ref Ytmp3ApiDownloaderIntegration
+          - !Ref Ytmp3ApiDispatcherIntegration
 
   Ytmp3ApiDefaultStage:
     Type: AWS::ApiGatewayV2::Stage
@@ -74,15 +163,15 @@ Resources:
   Deployment:
     Type: "AWS::ApiGatewayV2::Deployment"
     DependsOn:
-      - Ytmp3ApiDownloaderRoute
+      - Ytmp3ApiDispatcherRoute
     Properties:
       ApiId: !Ref Ytmp3Api
       StageName: $default
 
-  Ytmp3ApiDownloaderPermission:
+  Ytmp3ApiDispatcherPermission:
     Type: AWS::Lambda::Permission
     Properties:
-      FunctionName: !GetAtt Ytmp3Downloader.Arn
+      FunctionName: !GetAtt Ytmp3Dispatcher.Arn
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
       SourceArn: !Join
