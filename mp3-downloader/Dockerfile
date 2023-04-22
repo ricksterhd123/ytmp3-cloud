@@ -7,7 +7,6 @@ COPY bin/ffprobe /usr/local/bin/
 # Setup app
 WORKDIR /app
 
-COPY utils .
 COPY requirements.txt .
 COPY main.py ${LAMBDA_TASK_ROOT}
 
