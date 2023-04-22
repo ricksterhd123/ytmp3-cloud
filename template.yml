@@ -3,20 +3,17 @@ Transform: AWS::Serverless-2016-10-31
 
 Description: ytmp3 cloud
 
-Resources:
-  Ytmp3DownloaderRepository: 
-    Type: AWS::ECR::Repository
-    Properties: 
-      RepositoryName: "ytmp3-downloader"
-      ImageScanningConfiguration: 
-        ScanOnPush: true
+Parameters:
+  Ytmp3DownloaderDockerImageUri:
+    Type: String
+    Description: Docker Image URI for ytmp3-downloader lambda function
 
+Resources:
   Ytmp3Downloader:
     Type: AWS::Serverless::Function
     Properties:
-      PackageType: Zip
-      Handler: mp3-downloader/main.handler
-      Runtime: python3.9
+      PackageType: Image
+      ImageUri: !Ref Ytmp3DownloaderDockerImageUri
       Timeout: 300
 
   Ytmp3Api:
