@@ -7,4 +7,3 @@ region = "eu-west-2"
 confirm_changeset = true
 capabilities = "CAPABILITY_IAM"
 image_repositories = []
-parameter_overrides = "Ytmp3DownloaderDockerImageUri=\"220207374598.dkr.ecr.eu-west-2.amazonaws.com/ytmp3-downloader@sha256:c5590561aee79ef4568c8204b62ab89f906e2e7d71b128b4749d0b464b97f1c3\""
