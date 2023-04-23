@@ -54,9 +54,10 @@ def put_download_job_to_queue(video_id):
 
         dyn_table.put_item(
             Item=job,
-            ConditionExpression="attribute_not_exists(#r) or #status = :status",
+            ConditionExpression="attribute_not_exists(#r) or #status = :completeStatus or (#status = :failedStatus)",
             ExpressionAttributeValues={
-                ':status': 'FAILED'
+                ':failedStatus': 'FAILED',
+                ':completeStatus': 'COMPLETE'
             },
             ExpressionAttributeNames={
                 "#status": "status",
