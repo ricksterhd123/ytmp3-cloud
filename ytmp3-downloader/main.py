@@ -1,6 +1,7 @@
 import logging
 import os
 import boto3
+import json
 
 from yt_dlp import YoutubeDL
 from botocore.exceptions import ClientError
@@ -9,92 +10,90 @@ logger = logging.getLogger('mp3-downloader')
 logger.setLevel(logging.INFO)
 
 YTMP3_STORE_BUCKET_NAME = os.environ.get('YTMP3_STORE_BUCKET_NAME')
+YTMP3_DOWNLOADER_QUEUE_URL = os.environ.get('YTMP3_DOWNLOADER_QUEUE_URL')
+YTMP3_DB_NAME = os.environ.get('YTMP3_DB_NAME')
+
 if not YTMP3_STORE_BUCKET_NAME:
-    raise Exception(
-        "Expected YTMP3_STORE_BUCKET_NAME environment variable but got None")
+    raise Exception("YTMP3_STORE_BUCKET_NAME undefined")
+
+if not YTMP3_DOWNLOADER_QUEUE_URL:
+    raise Exception("YTMP3_DOWNLOADER_QUEUE_URL undefined")
+
+if not YTMP3_DB_NAME:
+    raise Exception("YTMP3_DB_NAME undefined")
 
 
 def upload_file(file_name, bucket, object_name=None):
-    """Upload a file to an S3 bucket
-
-    :param file_name: File to upload
-    :param bucket: Bucket to upload to
-    :param object_name: S3 object name. If not specified then file_name is used
-    :return: True if file was uploaded, else False
-    """
-
     # If S3 object_name was not specified, use file_name
     if object_name is None:
         object_name = os.path.basename(file_name)
 
     # Upload the file
     s3_client = boto3.client('s3')
-    try:
-        s3_client.upload_file(file_name, bucket, object_name)
-    except ClientError as e:
-        logging.error(e)
-        return False
-    return True
+    s3_client.upload_file(file_name, bucket, object_name)
 
 
-def handler(event, context):
-    logger.info(event)
+def handler(sqs_event, context):
+    logger.info(sqs_event)
     logger.info(context)
 
-    videoId = event['pathParameters']['videoId']
+    sqs_client = boto3.client('sqs')
+    jobs = sqs_event['Records']
 
-    if not videoId:
-        return {
-            "statusCode": 400
-        }
+    for job in jobs:
+        try:
+            job_id = job['messageId']
+            job_reciept_handle = job['receiptHandle']
+            job_body = json.loads(job['body'])
+            videoId = job_body['videoId']
 
-    file_path = '/tmp'
-    ydl_opts = {
-        "format": "bestaudio/best",
-        "outtmpl": f"{file_path}/%(display_id)s.%(ext)s",
-        'postprocessors': [
-            {
-                "key": "FFmpegExtractAudio",
-                "preferredcodec": "mp3",
-                "preferredquality": "192",
-            },
-            {'key': 'FFmpegMetadata'},
-            {'key': 'EmbedThumbnail'}
-        ],
-        "logger": logger,
-    }
-
-    url = f"https://youtube.com/watch?v={videoId}"
-
-    try:
-        with YoutubeDL(ydl_opts) as ydl:
-            info_dict = ydl.sanitize_info(
-                ydl.extract_info(url, download=False)
-                )
-            video_id = info_dict.get("display_id", None)
-            duration = info_dict.get("duration", None)
-            file_name = f"{video_id}.mp3"
-
-            logger.info(f"Video ID: {video_id}, Duration: {duration}")
-
-            if not duration:
-                logger.warning(
-                    f"Video ID: {video_id} has no duration metadata")
-                logger.error(
-                    "Cannot find duration in metadata. Are you sure this is a YouTube video?")
+            if not videoId:
                 return {
-                    "statusCode": 400,
-                    "body": "Cannot find duration in metadata. Are you sure this is a YouTube video?"
+                    "statusCode": 400
                 }
 
-            ydl.download([url])
-            upload_file(f"{file_path}/{file_name}",
-                        YTMP3_STORE_BUCKET_NAME, file_name)
-    except Exception as e:
-        logger.error(e)
-        return {
-            "statusCode": 500
-        }
+            file_path = '/tmp'
+            ydl_opts = {
+                "format": "bestaudio/best",
+                "outtmpl": f"{file_path}/%(display_id)s.%(ext)s",
+                'postprocessors': [
+                    {
+                        "key": "FFmpegExtractAudio",
+                        "preferredcodec": "mp3",
+                        "preferredquality": "192",
+                    },
+                    {'key': 'FFmpegMetadata'},
+                    {'key': 'EmbedThumbnail'}
+                ],
+                "logger": logger,
+            }
+
+            url = f"https://youtube.com/watch?v={videoId}"
+
+            with YoutubeDL(ydl_opts) as ydl:
+                info_dict = ydl.sanitize_info(
+                    ydl.extract_info(url, download=False)
+                )
+
+                video_id = info_dict.get("display_id", None)
+                duration = info_dict.get("duration", None)
+                file_name = f"{video_id}.mp3"
+
+                logger.info(f"Video ID: {video_id}, Duration: {duration}")
+
+                ydl.download([url])
+                upload_file(f"{file_path}/{file_name}",YTMP3_STORE_BUCKET_NAME, file_name)
+                logger.info(f"Finished downloading video {video_id}")
+        except Exception as e:
+            logger.error(f'Failed to process job {job_id}')
+            logger.error(e)
+            sqs_client.delete_message(
+                QueueUrl=YTMP3_DOWNLOADER_QUEUE_URL,
+                ReceiptHandle=job_reciept_handle
+            )
+            return {
+                "statusCode": 500
+            }
 
     return {
         "statusCode": 200

@@ -12,30 +12,84 @@ Parameters:
     Type: String
     Description: Name of ytmp3-store bucket (must be unique)
 
+  Ytmp3DbName:
+    Type: String
+    Description: Name of ytmp3 db name
+    Default: ytmp3-db
+
 Resources:
+  Ytmp3Db:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Ref Ytmp3DbName
+      AttributeDefinitions:
+        - AttributeName: "videoId"
+          AttributeType: "S"
+      KeySchema:
+        - AttributeName: "videoId"
+          KeyType: HASH
+      BillingMode: PROVISIONED
+      ProvisionedThroughput:
+        ReadCapacityUnits: 2
+        WriteCapacityUnits: 2
+
   Ytmp3DownloaderQueue:
     Type: AWS::SQS::Queue
     Properties:
       QueueName: "ytmp3-downloader-queue"
       VisibilityTimeout: 300
 
-  Ytmp3DownloaderQueuePolicy: 
+  Ytmp3DownloaderQueuePolicy:
     Type: AWS::SQS::QueuePolicy
-    Properties: 
-      Queues: 
+    Properties:
+      Queues:
         - !Ref Ytmp3DownloaderQueue
-      PolicyDocument: 
-        Statement: 
-          - 
-            Action: 
-              - "SQS:*" 
+      PolicyDocument:
+        Statement:
+          - Action:
+              - "SQS:*"
             Effect: "Allow"
-            Resource: !GetAtt Ytmp3Downloader.Arn     
+            Resource: !GetAtt Ytmp3Downloader.Arn
 
   Ytmp3Store:
     Type: "AWS::S3::Bucket"
     Properties:
       BucketName: !Ref Ytmp3StoreBucketName
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerPreferred
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: False
+        BlockPublicPolicy: False
+        IgnorePublicAcls: False
+        RestrictPublicBuckets: False
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders:
+              - "*"
+            AllowedMethods:
+              - "PUT"
+              - "POST"
+              - "DELETE"
+              - "GET"
+            AllowedOrigins:
+              - "*"
+
+  Ytmp3StorePolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref Ytmp3Store
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Action:
+              - "s3:GetObject"
+            Effect: Allow
+            Resource: !Join
+              - ""
+              - - !GetAtt Ytmp3Store.Arn
+                - "/*"
+            Principal: "*"
 
   Ytmp3DownloaderRole:
     Type: "AWS::IAM::Role"
@@ -55,10 +109,16 @@ Resources:
             Version: "2012-10-17"
             Statement:
               - Effect: Allow
-                Action: "s3:*"
-                Resource: !GetAtt Ytmp3Store.Arn
+                Action: "dynamodb:*"
+                Resource: !GetAtt Ytmp3Db.Arn
               - Effect: Allow
-                Action: 
+                Action: "s3:*"
+                Resource: !Join
+                  - ""
+                  - - !GetAtt Ytmp3Store.Arn
+                    - "/*"
+              - Effect: Allow
+                Action:
                   - "sqs:ReceiveMessage"
                   - "sqs:DeleteMessage"
                   - "sqs:GetQueueAttributes"
@@ -72,15 +132,19 @@ Resources:
       PackageType: Image
       ImageUri: !Ref Ytmp3DownloaderDockerImageUri
       Timeout: 300
+      MemorySize: 2048
       Role: !GetAtt Ytmp3DownloaderRole.Arn
       Events:
         SqsEvent:
           Type: SQS
           Properties:
+            BatchSize: 1
             Queue: !GetAtt Ytmp3DownloaderQueue.Arn
       Environment:
         Variables:
+          YTMP3_DB_NAME: !Ref Ytmp3DbName
           YTMP3_STORE_BUCKET_NAME: !Ref Ytmp3StoreBucketName
+          YTMP3_DOWNLOADER_QUEUE_URL: !GetAtt Ytmp3DownloaderQueue.QueueUrl
 
   Ytmp3DispatcherRole:
     Type: "AWS::IAM::Role"
@@ -100,8 +164,17 @@ Resources:
             Version: "2012-10-17"
             Statement:
               - Effect: Allow
+                Action: "dynamodb:*"
+                Resource: !GetAtt Ytmp3Db.Arn
+              - Effect: Allow
                 Action: "sqs:*"
                 Resource: !GetAtt Ytmp3DownloaderQueue.Arn
+              - Effect: Allow
+                Action: "s3:*"
+                Resource: !Join
+                  - ""
+                  - - !GetAtt Ytmp3Store.Arn
+                    - "/*"
       ManagedPolicyArns:
         - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 
@@ -116,7 +189,8 @@ Resources:
       Role: !GetAtt Ytmp3DispatcherRole.Arn
       Environment:
         Variables:
-          YTMP3_DOWNLOADER_QUEUE: !GetAtt Ytmp3DownloaderQueue.Arn
+          YTMP3_DB_NAME: !Ref Ytmp3DbName
+          YTMP3_DOWNLOADER_QUEUE_URL: !GetAtt Ytmp3DownloaderQueue.QueueUrl
 
   Ytmp3Api:
     Type: AWS::ApiGatewayV2::Api
