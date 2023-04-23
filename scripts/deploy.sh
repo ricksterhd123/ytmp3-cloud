@@ -10,7 +10,7 @@ ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
 
 YTMP3_DOWNLOADER_DIR="ytmp3-downloader"
 YTMP3_DOWNLOADER_ECR_REPO_NAME=$YTMP3_DOWNLOADER_DIR
-YTMP3_STORE_BUCKET_NAME="bpmqrjcb"
+YTMP3_STORE_BUCKET_NAME="ytmp3-cloud-mt9olqdw54u4h"
 
 ## FIXME: Can't find a better way to check if repository already exists
 if ! aws ecr create-repository --repository-name $YTMP3_DOWNLOADER_ECR_REPO_NAME; then
