@@ -106,7 +106,7 @@ def handler(sqs_event, context):
                             'Action': 'PUT'
                         },
                         'url': {
-                            'Value': f"{YTMP3_STORE_BUCKET_NAME}.s3.{AWS_DEFAULT_REGION}.amazonaws.com/{file_name}",
+                            'Value': f"https://{YTMP3_STORE_BUCKET_NAME}.s3.{AWS_DEFAULT_REGION}.amazonaws.com/{file_name}",
                             'Action': 'PUT'
                         }
                     }
