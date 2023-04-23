@@ -9,6 +9,14 @@ The cloud-based YouTube to mp3 host/converter
 - samcli
 
 ## Setup
+
+Choose a unique bucket name
+```bash
+echo ytmp3-cloud-"$(tr -dc a-z0-9 </dev/urandom | head -c 13 ; echo '')"
+```
+
+Set `YTMP3_STORE_BUCKET_NAME` in scripts/deploy.sh
+
 ```bash
 bash ./scripts/deploy.sh
 ```
