@@ -20,11 +20,15 @@ echo ytmp3-cloud-"$(tr -dc a-z0-9 </dev/urandom | head -c 13 ; echo '')"
 
 Set `YTMP3_STORE_BUCKET_NAME` in scripts/deploy.sh
 
+Run the deploy script
+
+**Note:** this creates an ECR repository outside of the stack, since sam cannot build images yet. If you know a way around this, please submit a pull request!
 ```bash
 bash ./scripts/deploy.sh
 ```
 
 ## Destroy
+Run the destroy script
 ```bash
 bash ./scripts/destroy.sh
 ```
