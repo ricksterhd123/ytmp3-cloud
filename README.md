@@ -1,6 +1,9 @@
 # ytmp3 cloud
 The cloud-based YouTube to mp3 host/converter
 
+## Overview
+![alt text](.docs/ytmp3-cloud-overview.png)
+
 ## Prerequisites
 - bash
 - wget
