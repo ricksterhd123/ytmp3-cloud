@@ -62,7 +62,7 @@ bash ./scripts/destroy.sh
 {
     "videoId": "#########",
     "status": "COMPLETE",
-    "url": "https://bpmqrjcb.s3.eu-west-2.amazonaws.com/ef8Ej3tj9bs.mp3",
+    "url": "https://##########.s3.#########.amazonaws.com/ef8Ej3tj9bs.mp3",
     "updatedAt": "2023-04-23T19:27:44.850Z",
     "createdAt": "2023-04-23T19:27:44.850Z"
 }
