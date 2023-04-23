@@ -9,6 +9,7 @@ from yt_dlp import YoutubeDL
 logger = logging.getLogger('ytmp3-dispatcher')
 logger.setLevel(logging.INFO)
 
+MAX_VIDEO_DURATION_MINS = 90
 YTMP3_DOWNLOADER_QUEUE_URL = os.environ.get('YTMP3_DOWNLOADER_QUEUE_URL')
 YTMP3_DB_NAME = os.environ.get('YTMP3_DB_NAME')
 
@@ -18,8 +19,16 @@ if not YTMP3_DOWNLOADER_QUEUE_URL:
 if not YTMP3_DB_NAME:
     raise Exception("YTMP3_DB_NAME undefined")
 
+sqs_client = boto3.client('sqs')
+dyn_table = boto3.resource('dynamodb').Table(YTMP3_DB_NAME)
+
 
 def is_video_id_valid(video_id):
+    # This prevents injecting extra query parameters in the url
+    # and remove nasties like &list=
+    if "&" in video_id:
+        return False, "Invalid videoId"
+
     ydl_opts = {
         "format": "bestaudio/best"
     }
@@ -32,18 +41,35 @@ def is_video_id_valid(video_id):
                 ydl.extract_info(url, download=False)
             )
 
-            if not info_dict.get("duration", None):
-                return False
+            duration = info_dict.get("duration", None)
+
+            if not duration:
+                return False, "No duration in metadata"
+
+            if duration > MAX_VIDEO_DURATION_MINS * 60:
+                return False, f"Video exceeds {MAX_VIDEO_DURATION_MINS} minutes"
 
     except Exception as e:
+        return False, "Internal server error, please try again"
+
+    return True, None
+
+
+def get_download_job_from_db(video_id):
+    item_result = dyn_table.get_item(
+        Key={
+            'videoId': video_id
+        }
+    )
+
+    item = item_result.get('Item')
+    if not item:
         return False
 
-    return True
+    return item
 
 
 def put_download_job_to_queue(video_id):
-    dyn_table = boto3.resource('dynamodb').Table(YTMP3_DB_NAME)
-
     try:
         job = {
             'videoId': video_id,
@@ -54,18 +80,17 @@ def put_download_job_to_queue(video_id):
 
         dyn_table.put_item(
             Item=job,
-            ConditionExpression="attribute_not_exists(#r) or #status = :completeStatus or (#status = :failedStatus)",
-            ExpressionAttributeValues={
-                ':failedStatus': 'FAILED',
-                ':completeStatus': 'COMPLETE'
-            },
+            ConditionExpression="attribute_not_exists(#r)",
+            # ExpressionAttributeValues={
+            #     ':failedStatus': 'FAILED',
+            #     ':completeStatus': 'COMPLETE'
+            # },
             ExpressionAttributeNames={
-                "#status": "status",
+                # "#status": "status",
                 "#r": "videoId"
             }
         )
 
-        sqs_client = boto3.client('sqs')
         sqs_client.send_message(
             QueueUrl=YTMP3_DOWNLOADER_QUEUE_URL,
             MessageBody=json.dumps({'videoId': video_id}),
@@ -76,36 +101,28 @@ def put_download_job_to_queue(video_id):
         if e.response['Error']['Code'] != 'ConditionalCheckFailedException':
             raise
         else:
-            # When someone gets this item, update 'updatedAt'
-            # dyn_table.update_item(
-            #     Key={
-            #         'videoId': video_id,
-            #     },
-            #     AttributeUpdates={
-            #         'updatedAt': { 'Value': datetime.now().isoformat(), 'Action': 'PUT' }
-            #     }
-            # )
-            item_result = dyn_table.get_item(
-                Key={
-                    'videoId': video_id
-                }
-            )
-            return item_result['Item']
+            return get_download_job_from_db(video_id)
 
 
 def handler(event, context):
     logger.info(event)
     logger.info(context)
+
     video_id = event['pathParameters']['videoId']
 
-    if not is_video_id_valid(video_id):
+    cached_result = get_download_job_from_db(video_id)
+    if cached_result:
+        return cached_result
+
+    valid, error_message = is_video_id_valid(video_id)
+    if not valid:
         return {
             'statusCode': 400,
             'headers': {
                 'content-type': 'application/json',
             },
             'body': json.dumps({
-                'error': 'Invalid videoId'
+                'error': error_message
             })
         }
 
@@ -118,9 +135,9 @@ def handler(event, context):
     }
 
 
-if __name__ == '__main__':
-    print(handler({
-        'pathParameters': {
-            'videoId': 'ef8Ej3tj9bs'
-        }
-    }, {}))
+# if __name__ == '__main__':
+#     print(handler({
+#         'pathParameters': {
+#             'videoId': 'iENAm60rSbA'
+#         }
+#     }, {}))
