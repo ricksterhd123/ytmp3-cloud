@@ -68,9 +68,6 @@ Resources:
           - AllowedHeaders:
               - "*"
             AllowedMethods:
-              - "PUT"
-              - "POST"
-              - "DELETE"
               - "GET"
             AllowedOrigins:
               - "*"
