@@ -1,5 +1,6 @@
 version = 0.1
 [default.deploy.parameters]
+# Warning: the stack name is hardcoded in scripts/destroy.sh
 stack_name = "ytmp3-cloud"
 resolve_s3 = true
 s3_prefix = "ytmp3-cloud"
