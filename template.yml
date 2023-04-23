@@ -233,7 +233,7 @@ Resources:
     Properties:
       StageName: $default
       ApiId: !Ref Ytmp3Api
-      RouteSettings:
+      DefaultRouteSettings:
         ThrottlingBurstLimit: 5
         ThrottlingRateLimit: 5
 
