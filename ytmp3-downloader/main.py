@@ -4,7 +4,6 @@ import boto3
 import json
 
 from yt_dlp import YoutubeDL
-from botocore.exceptions import ClientError
 from datetime import datetime
 
 logger = logging.getLogger('mp3-downloader')
