@@ -8,11 +8,11 @@ The cloud-based YouTube to mp3 host/converter
 - bash
 - wget
 - docker
+- make
 - awscli (with admin account)
 - samcli
 
 ## Setup
-
 Choose a unique bucket name
 ```bash
 echo ytmp3-cloud-"$(tr -dc a-z0-9 </dev/urandom | head -c 13 ; echo '')"
@@ -24,13 +24,19 @@ Run the deploy script
 
 **Note:** this creates an ECR repository outside of the stack, since sam cannot build images yet. If you know a way around this, please submit a pull request!
 ```bash
-bash ./scripts/deploy.sh
+make
+```
+
+## Clean
+Clean up build files during or after development
+```bash
+make clean
 ```
 
 ## Destroy
 Run the destroy script
 ```bash
-bash ./scripts/destroy.sh
+make destroy
 ```
 
 ## REST API
