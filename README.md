@@ -34,7 +34,9 @@ bash ./scripts/destroy.sh
 ```
 
 ## REST API
-### GET /mp3/videoId
+The REST API URL will be `Ytmp3ApiUrl`, output from ./scripts/deploy.sh
+
+### GET /mp3/{videoId}
 
 #### 400 Invalid videoId
 ```json
@@ -69,7 +71,7 @@ bash ./scripts/destroy.sh
 {
     "videoId": "#########",
     "status": "COMPLETE",
-    "url": "https://##########.s3.#########.amazonaws.com/ef8Ej3tj9bs.mp3",
+    "url": "https://##########.s3.#########.amazonaws.com/0Sl5-Cl6LOo.mp3",
     "updatedAt": "2023-04-23T19:27:44.850Z",
     "createdAt": "2023-04-23T19:27:44.850Z"
 }
