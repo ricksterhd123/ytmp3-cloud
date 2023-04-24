@@ -35,22 +35,17 @@ def is_video_id_valid(video_id):
 
     url = f"https://youtube.com/watch?v={video_id}"
 
-    try:
-        with YoutubeDL(ydl_opts) as ydl:
-            info_dict = ydl.sanitize_info(
-                ydl.extract_info(url, download=False)
-            )
+    with YoutubeDL(ydl_opts) as ydl:
+        info_dict = ydl.sanitize_info(
+            ydl.extract_info(url, download=False)
+        )
 
-            duration = info_dict.get("duration", None)
+        duration = info_dict.get("duration", None)
+        if not duration:
+            return False, "No duration in metadata"
 
-            if not duration:
-                return False, "No duration in metadata"
-
-            if duration > MAX_VIDEO_DURATION_MINS * 60:
-                return False, f"Video exceeds {MAX_VIDEO_DURATION_MINS} minutes"
-
-    except Exception as e:
-        return False, "Internal server error, please try again"
+        if duration > MAX_VIDEO_DURATION_MINS * 60:
+            return False, f"Video exceeds {MAX_VIDEO_DURATION_MINS} minutes"
 
     return True, None
 
@@ -104,12 +99,8 @@ def put_download_job_to_queue(video_id):
             return get_download_job_from_db(video_id)
 
 
-def handler(event, context):
-    logger.info(event)
-    logger.info(context)
-
+def handler(event):
     video_id = event['pathParameters']['videoId']
-
     if not video_id:
         return {
             'statusCode': 400,
@@ -121,36 +112,42 @@ def handler(event, context):
             }),
         }
 
-    cached_result = get_download_job_from_db(video_id)
-    if cached_result:
+    try:
+        cached_result = get_download_job_from_db(video_id)
+        if cached_result:
+            return {
+                'statusCode': 200,
+                'headers': {
+                    'content-type': 'application/json',
+                },
+                'body': json.dumps(cached_result),
+            }
+
+        valid, error_message = is_video_id_valid(video_id)
+        if not valid:
+            return {
+                'statusCode': 400,
+                'headers': {
+                    'content-type': 'application/json',
+                },
+                'body': json.dumps({
+                    'error': error_message
+                })
+            }
+
         return {
             'statusCode': 200,
             'headers': {
                 'content-type': 'application/json',
             },
-            'body': json.dumps(cached_result),
+            'body': json.dumps(put_download_job_to_queue(video_id))
         }
-
-    valid, error_message = is_video_id_valid(video_id)
-    if not valid:
+    except Exception as e:
+        logger.error(e)
         return {
-            'statusCode': 400,
-            'headers': {
-                'content-type': 'application/json',
-            },
-            'body': json.dumps({
-                'error': error_message
-            })
+            'statusCode': 500,
+            'body': json.dumps({'error': 'Internal server error'})
         }
-
-    return {
-        'statusCode': 200,
-        'headers': {
-            'content-type': 'application/json',
-        },
-        'body': json.dumps(put_download_job_to_queue(video_id))
-    }
-
 
 # if __name__ == '__main__':
 #     print(handler({
