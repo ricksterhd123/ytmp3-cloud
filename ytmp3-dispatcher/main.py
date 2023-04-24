@@ -110,9 +110,26 @@ def handler(event, context):
 
     video_id = event['pathParameters']['videoId']
 
+    if not video_id:
+        return {
+            'statusCode': 400,
+            'headers': {
+                'content-type': 'application/json',
+            },
+            'body': json.dumps({
+                'error': 'Missing videoId'
+            }),
+        }
+
     cached_result = get_download_job_from_db(video_id)
     if cached_result:
-        return cached_result
+        return {
+            'statusCode': 200,
+            'headers': {
+                'content-type': 'application/json',
+            },
+            'body': json.dumps(cached_result),
+        }
 
     valid, error_message = is_video_id_valid(video_id)
     if not valid:

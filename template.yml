@@ -257,3 +257,23 @@ Resources:
           - ":"
           - !Ref Ytmp3Api
           - "/*/GET/mp3/*"
+
+Outputs:
+  Ytmp3ApiUrl:
+    Description: URL of Ytmp3 REST API
+    Value: !Join
+      - ''
+      - - "https://"
+        - !Ref Ytmp3Api
+        - ".execute-api."
+        - !Ref "AWS::Region"
+        - ".amazonaws.com"
+  Ytmp3StoreUrl:
+    Description: URL of Ytmp3 store S3 bucket
+    Value: !Join
+      - ''
+      - - "https://"
+        - !Ref Ytmp3Store
+        - ".s3."
+        - !Ref "AWS::Region"
+        - ".amazonaws.com"
