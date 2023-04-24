@@ -99,7 +99,7 @@ def put_download_job_to_queue(video_id):
             return get_download_job_from_db(video_id)
 
 
-def handler(event):
+def handler(event, context):
     video_id = event['pathParameters']['videoId']
     if not video_id:
         return {
