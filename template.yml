@@ -28,6 +28,9 @@ Resources:
       KeySchema:
         - AttributeName: "videoId"
           KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: True
       BillingMode: PROVISIONED
       ProvisionedThroughput:
         ReadCapacityUnits: 2
@@ -171,11 +174,15 @@ Resources:
                 Action: "sqs:SendMessage"
                 Resource: !GetAtt Ytmp3DownloaderQueue.Arn
               - Effect: Allow
-                Action: "s3:GetObject"
-                Resource: !Join
-                  - ""
-                  - - !GetAtt Ytmp3Store.Arn
-                    - "/*"
+                Action: 
+                  - "s3:GetObject"
+                  - "s3:ListBucket"
+                Resource:
+                  - !GetAtt Ytmp3Store.Arn
+                  - !Join
+                    - ""
+                    - - !GetAtt Ytmp3Store.Arn
+                      - "/*"
       ManagedPolicyArns:
         - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 

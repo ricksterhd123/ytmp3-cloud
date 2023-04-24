@@ -56,7 +56,7 @@ The REST API URL will be `Ytmp3ApiUrl`, output from ./scripts/deploy.sh
 {
     "videoId": "#########",
     "status": "FAILED",
-    "error": "Download failed, please wait 1 minute and try again",
+    "error": "Failed to download #########, please try again later",
     "updatedAt": "2023-04-23T19:27:44.850Z",
     "createdAt": "2023-04-23T19:27:44.850Z"
 }

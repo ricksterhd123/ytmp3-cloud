@@ -12,43 +12,63 @@ logger.setLevel(logging.INFO)
 MAX_VIDEO_DURATION_MINS = 90
 YTMP3_DOWNLOADER_QUEUE_URL = os.environ.get('YTMP3_DOWNLOADER_QUEUE_URL')
 YTMP3_DB_NAME = os.environ.get('YTMP3_DB_NAME')
+YTMP3_STORE_BUCKET_NAME = os.environ.get('YTMP3_STORE_BUCKET_NAME')
 
 if not YTMP3_DOWNLOADER_QUEUE_URL:
-    raise Exception("YTMP3_DOWNLOADER_QUEUE_URL undefined")
+    raise Exception('YTMP3_DOWNLOADER_QUEUE_URL undefined')
 
 if not YTMP3_DB_NAME:
-    raise Exception("YTMP3_DB_NAME undefined")
+    raise Exception('YTMP3_DB_NAME undefined')
+
+if not YTMP3_STORE_BUCKET_NAME:
+    raise Exception('YTMP3_STORE_BUCKET_NAME undefined')
 
 sqs_client = boto3.client('sqs')
 dyn_table = boto3.resource('dynamodb').Table(YTMP3_DB_NAME)
-
+s3_client = boto3.client('s3')
 
 def is_video_id_valid(video_id):
     # This prevents injecting extra query parameters in the url
     # and remove nasties like &list=
-    if "&" in video_id:
-        return False, "Invalid videoId"
+    if '&' in video_id:
+        return False, 'Invalid videoId'
 
     ydl_opts = {
-        "format": "bestaudio/best"
+        'format': 'bestaudio/best'
     }
 
-    url = f"https://youtube.com/watch?v={video_id}"
+    url = f'https://youtube.com/watch?v={video_id}'
 
-    with YoutubeDL(ydl_opts) as ydl:
-        info_dict = ydl.sanitize_info(
-            ydl.extract_info(url, download=False)
-        )
+    try:
+        with YoutubeDL(ydl_opts) as ydl:
+            info_dict = ydl.sanitize_info(
+                ydl.extract_info(url, download=False)
+            )
 
-        duration = info_dict.get("duration", None)
-        if not duration:
-            return False, "No duration in metadata"
+            duration = info_dict.get('duration', None)
+            if not duration:
+                return False, 'No duration in metadata'
 
-        if duration > MAX_VIDEO_DURATION_MINS * 60:
-            return False, f"Video exceeds {MAX_VIDEO_DURATION_MINS} minutes"
+            if duration > MAX_VIDEO_DURATION_MINS * 60:
+                return False, f'Video exceeds {MAX_VIDEO_DURATION_MINS} minutes'
+    except Exception as e:
+        return False, "Video unavailable"
 
     return True, None
 
+
+def is_in_store(video_id):
+    try:
+        s3_client.head_object(
+            Bucket=YTMP3_STORE_BUCKET_NAME,
+            Key=f'{video_id}.mp3'
+        )
+    except botocore.exceptions.ClientError as e:
+        if e.response['Error']['Code'] != '404':
+            raise
+        else:
+            return False
+    return True
 
 def get_download_job_from_db(video_id):
     item_result = dyn_table.get_item(
@@ -64,7 +84,7 @@ def get_download_job_from_db(video_id):
     return item
 
 
-def put_download_job_to_queue(video_id):
+def put_download_job_to_queue(video_id, forced=False):
     try:
         job = {
             'videoId': video_id,
@@ -73,18 +93,18 @@ def put_download_job_to_queue(video_id):
             'updatedAt': datetime.now().isoformat()
         }
 
-        dyn_table.put_item(
-            Item=job,
-            ConditionExpression="attribute_not_exists(#r)",
-            # ExpressionAttributeValues={
-            #     ':failedStatus': 'FAILED',
-            #     ':completeStatus': 'COMPLETE'
-            # },
-            ExpressionAttributeNames={
-                # "#status": "status",
-                "#r": "videoId"
-            }
-        )
+        if not forced:
+            dyn_table.put_item(
+                Item=job,
+                ConditionExpression='attribute_not_exists(#r)',
+                ExpressionAttributeNames={
+                    '#r': 'videoId'
+                }
+            )
+        else:
+            dyn_table.put_item(
+                Item=job,
+            )
 
         sqs_client.send_message(
             QueueUrl=YTMP3_DOWNLOADER_QUEUE_URL,
@@ -114,7 +134,20 @@ def handler(event, context):
 
     try:
         cached_result = get_download_job_from_db(video_id)
-        if cached_result:
+        # Redownload if file not exists in s3 and status is 'COMPLETE'
+        redownload = cached_result and cached_result['status'] == 'COMPLETE' and not is_in_store(video_id)
+
+        if cached_result and not redownload:
+            # If there's a failure from the downloader, we only need to show the error
+            if cached_result['status'] == 'FAILED':
+                return {
+                        'statusCode': 400,
+                        'headers': {
+                            'content-type': 'application/json',
+                        },
+                        'body': json.dumps({ 'error': cached_result['error'] }),
+                    }
+
             return {
                 'statusCode': 200,
                 'headers': {
@@ -125,6 +158,14 @@ def handler(event, context):
 
         valid, error_message = is_video_id_valid(video_id)
         if not valid:
+            # It's not valid anymore and needs deleting from the table
+            if redownload:
+                dyn_table.delete_item(
+                    Key={
+                        'videoId': video_id
+                    }
+                )
+
             return {
                 'statusCode': 400,
                 'headers': {
@@ -140,7 +181,7 @@ def handler(event, context):
             'headers': {
                 'content-type': 'application/json',
             },
-            'body': json.dumps(put_download_job_to_queue(video_id))
+            'body': json.dumps(put_download_job_to_queue(video_id, redownload))
         }
     except Exception as e:
         logger.error(e)
@@ -150,8 +191,9 @@ def handler(event, context):
         }
 
 # if __name__ == '__main__':
+#     # print(is_in_store('iENAm60rSbA'))
 #     print(handler({
 #         'pathParameters': {
-#             'videoId': 'iENAm60rSbA'
+#             'videoId': 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
 #         }
 #     }, {}))
