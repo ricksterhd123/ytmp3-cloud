@@ -44,4 +44,4 @@ YTMP3_DOWNLOADER_DOCKER_IMAGE_URI=$(docker inspect --format='{{index .RepoDigest
 
 ## Build the template and deploy guided
 sam build --use-container
-sam deploy --confirm-changeset --image-repository=$YTMP3_DOWNLOADER_DOCKER_IMAGE_URI --parameter-overrides Ytmp3DownloaderDockerImageUri=$YTMP3_DOWNLOADER_DOCKER_IMAGE_URI Ytmp3StoreBucketName=$YTMP3_STORE_BUCKET_NAME
+sam deploy --confirm-changeset --no-fail-on-empty-changeset --image-repository=$YTMP3_DOWNLOADER_DOCKER_IMAGE_URI --parameter-overrides Ytmp3DownloaderDockerImageUri=$YTMP3_DOWNLOADER_DOCKER_IMAGE_URI Ytmp3StoreBucketName=$YTMP3_STORE_BUCKET_NAME
