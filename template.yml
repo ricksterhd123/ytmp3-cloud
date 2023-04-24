@@ -106,10 +106,11 @@ Resources:
             Version: "2012-10-17"
             Statement:
               - Effect: Allow
-                Action: "dynamodb:*"
+                Action: 
+                  - "dynamodb:UpdateItem"
                 Resource: !GetAtt Ytmp3Db.Arn
               - Effect: Allow
-                Action: "s3:*"
+                Action: "s3:PutObject"
                 Resource: !Join
                   - ""
                   - - !GetAtt Ytmp3Store.Arn
@@ -161,13 +162,15 @@ Resources:
             Version: "2012-10-17"
             Statement:
               - Effect: Allow
-                Action: "dynamodb:*"
+                Action: 
+                  - "dynamodb:GetItem"
+                  - "dynamodb:PutItem"
                 Resource: !GetAtt Ytmp3Db.Arn
               - Effect: Allow
-                Action: "sqs:*"
+                Action: "sqs:SendMessage"
                 Resource: !GetAtt Ytmp3DownloaderQueue.Arn
               - Effect: Allow
-                Action: "s3:*"
+                Action: "s3:GetObject"
                 Resource: !Join
                   - ""
                   - - !GetAtt Ytmp3Store.Arn
