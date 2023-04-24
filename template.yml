@@ -165,6 +165,7 @@ Resources:
                 Action: 
                   - "dynamodb:GetItem"
                   - "dynamodb:PutItem"
+                  - "dynamodb:DeleteItem"
                 Resource: !GetAtt Ytmp3Db.Arn
               - Effect: Allow
                 Action: "sqs:SendMessage"
@@ -191,6 +192,7 @@ Resources:
         Variables:
           YTMP3_DB_NAME: !Ref Ytmp3DbName
           YTMP3_DOWNLOADER_QUEUE_URL: !GetAtt Ytmp3DownloaderQueue.QueueUrl
+          YTMP3_STORE_BUCKET_NAME: !Ref Ytmp3StoreBucketName
 
   Ytmp3Api:
     Type: AWS::ApiGatewayV2::Api
