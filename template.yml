@@ -207,6 +207,10 @@ Resources:
       Name: Ytmp3CloudApi
       Description: REST API for ytmp3-cloud
       ProtocolType: HTTP
+      CorsConfiguration:
+        AllowHeaders: ["*"]
+        AllowMethods: ["OPTIONS", "GET"]
+        AllowOrigins: ["*"]
       Version: v1.0.0
 
   Ytmp3ApiDispatcherIntegration:
@@ -243,8 +247,8 @@ Resources:
       StageName: $default
       ApiId: !Ref Ytmp3Api
       DefaultRouteSettings:
-        ThrottlingBurstLimit: 2
-        ThrottlingRateLimit: 2
+        ThrottlingBurstLimit: 5
+        ThrottlingRateLimit: 10
 
   Deployment:
     Type: "AWS::ApiGatewayV2::Deployment"
