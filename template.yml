@@ -247,8 +247,8 @@ Resources:
       StageName: $default
       ApiId: !Ref Ytmp3Api
       DefaultRouteSettings:
-        ThrottlingBurstLimit: 5
-        ThrottlingRateLimit: 10
+        ThrottlingBurstLimit: 50
+        ThrottlingRateLimit: 100
 
   Deployment:
     Type: "AWS::ApiGatewayV2::Deployment"
