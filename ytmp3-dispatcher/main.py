@@ -52,7 +52,7 @@ def is_video_id_valid(video_id):
             if duration > MAX_VIDEO_DURATION_MINS * 60:
                 return False, f'Video exceeds {MAX_VIDEO_DURATION_MINS} minutes'
     except Exception as e:
-        return False, "Video unavailable"
+        return False, 'Video unavailable'
 
     return True, None
 
@@ -125,6 +125,7 @@ def handler(event, context):
         return {
             'statusCode': 400,
             'headers': {
+                'Access-Control-Allow-Origin': '*',
                 'content-type': 'application/json',
             },
             'body': json.dumps({
@@ -143,6 +144,7 @@ def handler(event, context):
                 return {
                         'statusCode': 400,
                         'headers': {
+                            'Access-Control-Allow-Origin': '*',
                             'content-type': 'application/json',
                         },
                         'body': json.dumps({ 'error': cached_result['error'] }),
@@ -151,6 +153,7 @@ def handler(event, context):
             return {
                 'statusCode': 200,
                 'headers': {
+                    'Access-Control-Allow-Origin': '*',
                     'content-type': 'application/json',
                 },
                 'body': json.dumps(cached_result),
@@ -169,6 +172,7 @@ def handler(event, context):
             return {
                 'statusCode': 400,
                 'headers': {
+                    'Access-Control-Allow-Origin': '*',
                     'content-type': 'application/json',
                 },
                 'body': json.dumps({
@@ -179,6 +183,7 @@ def handler(event, context):
         return {
             'statusCode': 200,
             'headers': {
+                'Access-Control-Allow-Origin': '*',
                 'content-type': 'application/json',
             },
             'body': json.dumps(put_download_job_to_queue(video_id, redownload))
@@ -187,6 +192,7 @@ def handler(event, context):
         logger.error(e)
         return {
             'statusCode': 500,
+            'Access-Control-Allow-Origin': '*',
             'body': json.dumps({'error': 'Internal server error'})
         }
 
