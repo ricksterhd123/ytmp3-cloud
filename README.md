@@ -54,11 +54,7 @@ The REST API URL will be `Ytmp3ApiUrl`, output from ./scripts/deploy.sh
 #### 400 Download failed
 ```json
 {
-    "videoId": "#########",
-    "status": "FAILED",
     "error": "Failed to download #########, please try again later",
-    "updatedAt": "2023-04-23T19:27:44.850Z",
-    "createdAt": "2023-04-23T19:27:44.850Z"
 }
 ```
 
@@ -82,3 +78,6 @@ The REST API URL will be `Ytmp3ApiUrl`, output from ./scripts/deploy.sh
     "createdAt": "2023-04-23T19:27:44.850Z"
 }
 ```
+
+## Contributors
+Contributions are most welcome, please feel free to submit a PR!
