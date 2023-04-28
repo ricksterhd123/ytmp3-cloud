@@ -132,8 +132,8 @@ Resources:
     Properties:
       PackageType: Image
       ImageUri: !Ref Ytmp3DownloaderDockerImageUri
-      Timeout: 300
-      MemorySize: 2048
+      Timeout: 600
+      MemorySize: 4096
       Role: !GetAtt Ytmp3DownloaderRole.Arn
       Events:
         SqsEvent:
