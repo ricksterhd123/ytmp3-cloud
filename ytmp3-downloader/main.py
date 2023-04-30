@@ -68,6 +68,7 @@ def handler(sqs_event, context):
                     {'key': 'FFmpegMetadata'},
                     {'key': 'EmbedThumbnail'}
                 ],
+                'allowed_extractors': ['youtube'],
                 'logger': logger,
             }
 
