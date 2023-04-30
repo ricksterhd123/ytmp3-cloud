@@ -22,7 +22,6 @@ Set `YTMP3_STORE_BUCKET_NAME` in scripts/deploy.sh
 
 Run the deploy script
 
-**Note:** this creates an ECR repository outside of the stack, since sam cannot build images yet. If you know a way around this, please submit a pull request!
 ```bash
 make
 ```
@@ -81,3 +80,9 @@ The REST API URL will be `Ytmp3ApiUrl`, output from ./scripts/deploy.sh
 
 ## Contributors
 Contributions are most welcome, please feel free to submit a PR!
+
+## Credits
+
+- John Van Sickle's ffmpeg static builds: https://johnvansickle.com/ffmpeg/
+
+- yt-dlp: https://github.com/yt-dlp/yt-dlp
