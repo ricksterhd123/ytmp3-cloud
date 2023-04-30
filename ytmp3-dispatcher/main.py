@@ -34,7 +34,8 @@ def is_video_id_valid(video_id):
         return False, 'Invalid videoId'
 
     ydl_opts = {
-        'format': 'bestaudio/best'
+        'format': 'bestaudio/best',
+        'allowed_extractors': ['youtube']
     }
 
     url = f'https://youtube.com/watch?v={video_id}'
