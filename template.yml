@@ -160,7 +160,7 @@ Resources:
       Handler: main.handler
       Runtime: python3.10
       Timeout: 600
-      MemorySize: 4096
+      MemorySize: 3008
       Role: !GetAtt Ytmp3DownloaderRole.Arn
       Layers:
         - !Ref ffmpeg

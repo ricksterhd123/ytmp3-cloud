@@ -11,7 +11,7 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
 
 YTMP3_DOWNLOADER_LAYER_DIR="ytmp3-downloader-layer"
-YTMP3_STORE_BUCKET_NAME="ytmp3-cloud-mt9olqdw54u4h"
+YTMP3_STORE_BUCKET_NAME="ytmp3-cloud-53cqewmhu4xre"
 
 cd $SCRIPT_DIR/..
 
