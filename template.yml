@@ -4,10 +4,6 @@ Transform: AWS::Serverless-2016-10-31
 Description: ytmp3 cloud
 
 Parameters:
-  Ytmp3DownloaderDockerImageUri:
-    Type: String
-    Description: Docker Image URI for ytmp3-downloader lambda function
-
   Ytmp3StoreBucketName:
     Type: String
     Description: Name of ytmp3-store bucket (must be unique)
@@ -16,6 +12,11 @@ Parameters:
     Type: String
     Description: Name of ytmp3 db name
     Default: ytmp3-db
+
+  Ytmp3DownloaderQueueName:
+    Type: String
+    Description: Name of Ytmp3 downloader queue
+    Default: ytmp3-downloader-queue
 
 Resources:
   Ytmp3Db:
@@ -39,8 +40,8 @@ Resources:
   Ytmp3DownloaderQueue:
     Type: AWS::SQS::Queue
     Properties:
-      QueueName: "ytmp3-downloader-queue"
-      VisibilityTimeout: 300
+      QueueName: !Ref Ytmp3DownloaderQueueName
+      VisibilityTimeout: 600
 
   Ytmp3DownloaderQueuePolicy:
     Type: AWS::SQS::QueuePolicy
@@ -56,6 +57,7 @@ Resources:
 
   Ytmp3Store:
     Type: "AWS::S3::Bucket"
+    DeletionPolicy: Retain
     Properties:
       BucketName: !Ref Ytmp3StoreBucketName
       OwnershipControls:
@@ -77,6 +79,7 @@ Resources:
 
   Ytmp3StorePolicy:
     Type: AWS::S3::BucketPolicy
+    DeletionPolicy: Retain
     Properties:
       Bucket: !Ref Ytmp3Store
       PolicyDocument:
