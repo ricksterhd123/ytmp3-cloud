@@ -81,3 +81,9 @@ The REST API URL will be `Ytmp3ApiUrl`, output from ./scripts/deploy.sh
 
 ## Contributors
 Contributions are most welcome, please feel free to submit a PR!
+
+## Credits
+
+- John Van Sickle's ffmpeg static builds: https://johnvansickle.com/ffmpeg/
+
+- yt-dlp: https://github.com/yt-dlp/yt-dlp
