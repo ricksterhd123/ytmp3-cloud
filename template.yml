@@ -91,6 +91,28 @@ Resources:
                 - "/*"
             Principal: "*"
 
+  ffmpeg:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      ContentUri: ytmp3-downloader-layer/
+      CompatibleRuntimes:
+        - python3.10
+      Description: ffmpeg binary
+      LayerName: ffmpeg
+    Metadata:
+      BuildMethod: makefile
+
+  ffprobe:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      ContentUri: ytmp3-downloader-layer/
+      CompatibleRuntimes:
+        - python3.10
+      Description: ffprobe binary
+      LayerName: ffprobe
+    Metadata:
+      BuildMethod: makefile
+
   Ytmp3DownloaderRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -130,11 +152,16 @@ Resources:
   Ytmp3Downloader:
     Type: AWS::Serverless::Function
     Properties:
-      PackageType: Image
-      ImageUri: !Ref Ytmp3DownloaderDockerImageUri
+      PackageType: Zip
+      CodeUri: ytmp3-downloader/
+      Handler: main.handler
+      Runtime: python3.10
       Timeout: 600
       MemorySize: 4096
       Role: !GetAtt Ytmp3DownloaderRole.Arn
+      Layers:
+        - !Ref ffmpeg
+        - !Ref ffprobe
       Events:
         SqsEvent:
           Type: SQS
@@ -192,7 +219,7 @@ Resources:
       PackageType: Zip
       CodeUri: ytmp3-dispatcher/
       Handler: main.handler
-      Runtime: python3.9
+      Runtime: python3.10
       Timeout: 300
       Role: !GetAtt Ytmp3DispatcherRole.Arn
       Environment:

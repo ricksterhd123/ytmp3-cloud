@@ -8,7 +8,7 @@ set -e
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
 
-YTMP3_DOWNLOADER_DIR="ytmp3-downloader"
+YTMP3_DOWNLOADER_DIR="ytmp3-downloader-layer"
 YTMP3_DOWNLOADER_ECR_REPO_NAME=$YTMP3_DOWNLOADER_DIR
 YTMP3_STORE_BUCKET_NAME="ytmp3-cloud-mt9olqdw54u4h"
 
@@ -35,13 +35,13 @@ if [[ ! -d "build/" ]]; then
     cd ..
 fi
 
-## Build docker image and push into ecr repository
-aws ecr get-login-password --region eu-west-2 | docker login --username AWS --password-stdin $ACCOUNT_ID.dkr.ecr.eu-west-2.amazonaws.com
-docker build -t $YTMP3_DOWNLOADER_ECR_REPO_NAME $YTMP3_DOWNLOADER_ECR_REPO_NAME/
-docker tag $YTMP3_DOWNLOADER_ECR_REPO_NAME:latest $ACCOUNT_ID.dkr.ecr.eu-west-2.amazonaws.com/$YTMP3_DOWNLOADER_ECR_REPO_NAME:latest
-docker push $ACCOUNT_ID.dkr.ecr.eu-west-2.amazonaws.com/$YTMP3_DOWNLOADER_ECR_REPO_NAME:latest
-YTMP3_DOWNLOADER_DOCKER_IMAGE_URI=$(docker inspect --format='{{index .RepoDigests 0}}' $YTMP3_DOWNLOADER_ECR_REPO_NAME:latest)
+# ## Build docker image and push into ecr repository
+# aws ecr get-login-password --region eu-west-2 | docker login --username AWS --password-stdin $ACCOUNT_ID.dkr.ecr.eu-west-2.amazonaws.com
+# docker build -t $YTMP3_DOWNLOADER_ECR_REPO_NAME $YTMP3_DOWNLOADER_ECR_REPO_NAME/
+# docker tag $YTMP3_DOWNLOADER_ECR_REPO_NAME:latest $ACCOUNT_ID.dkr.ecr.eu-west-2.amazonaws.com/$YTMP3_DOWNLOADER_ECR_REPO_NAME:latest
+# docker push $ACCOUNT_ID.dkr.ecr.eu-west-2.amazonaws.com/$YTMP3_DOWNLOADER_ECR_REPO_NAME:latest
+# YTMP3_DOWNLOADER_DOCKER_IMAGE_URI=$(docker inspect --format='{{index .RepoDigests 0}}' $YTMP3_DOWNLOADER_ECR_REPO_NAME:latest)
 
 ## Build the template and deploy guided
 sam build --use-container
-sam deploy --confirm-changeset --no-fail-on-empty-changeset --image-repository=$YTMP3_DOWNLOADER_DOCKER_IMAGE_URI --parameter-overrides Ytmp3DownloaderDockerImageUri=$YTMP3_DOWNLOADER_DOCKER_IMAGE_URI Ytmp3StoreBucketName=$YTMP3_STORE_BUCKET_NAME
+sam deploy --confirm-changeset --no-fail-on-empty-changeset --parameter-overrides Ytmp3StoreBucketName=$YTMP3_STORE_BUCKET_NAME
