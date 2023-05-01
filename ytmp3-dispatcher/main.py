@@ -3,7 +3,6 @@ import logging
 import boto3
 import botocore
 import os
-import re
 from datetime import datetime
 from yt_dlp import YoutubeDL
 
@@ -28,10 +27,8 @@ sqs_client = boto3.client('sqs')
 dyn_table = boto3.resource('dynamodb').Table(YTMP3_DB_NAME)
 s3_client = boto3.client('s3')
 
-video_id_regex = re.compile(r"[\w\-_]+")
-
 def is_video_id_valid(video_id):
-    if not video_id_regex.match(video_id):
+    if '=' in video_id:
         return False, 'Invalid videoId'
 
     ydl_opts = {
@@ -127,7 +124,6 @@ def handler(event, context):
         return {
             'statusCode': 400,
             'headers': {
-                'Access-Control-Allow-Origin': '*',
                 'content-type': 'application/json',
             },
             'body': json.dumps({
@@ -146,7 +142,6 @@ def handler(event, context):
                 return {
                         'statusCode': 400,
                         'headers': {
-                            'Access-Control-Allow-Origin': '*',
                             'content-type': 'application/json',
                         },
                         'body': json.dumps({ 'error': cached_result['error'] }),
@@ -155,7 +150,6 @@ def handler(event, context):
             return {
                 'statusCode': 200,
                 'headers': {
-                    'Access-Control-Allow-Origin': '*',
                     'content-type': 'application/json',
                 },
                 'body': json.dumps(cached_result),
@@ -174,7 +168,6 @@ def handler(event, context):
             return {
                 'statusCode': 400,
                 'headers': {
-                    'Access-Control-Allow-Origin': '*',
                     'content-type': 'application/json',
                 },
                 'body': json.dumps({
@@ -185,7 +178,6 @@ def handler(event, context):
         return {
             'statusCode': 200,
             'headers': {
-                'Access-Control-Allow-Origin': '*',
                 'content-type': 'application/json',
             },
             'body': json.dumps(put_download_job_to_queue(video_id, redownload))
@@ -194,7 +186,6 @@ def handler(event, context):
         logger.error(e)
         return {
             'statusCode': 500,
-            'Access-Control-Allow-Origin': '*',
             'body': json.dumps({'error': 'Internal server error'})
         }
 
