@@ -3,6 +3,7 @@ import logging
 import boto3
 import botocore
 import os
+import re
 from datetime import datetime
 from yt_dlp import YoutubeDL
 
@@ -27,10 +28,12 @@ sqs_client = boto3.client('sqs')
 dyn_table = boto3.resource('dynamodb').Table(YTMP3_DB_NAME)
 s3_client = boto3.client('s3')
 
+video_id_regex = re.compile(r"[a-zA-Z0-9_]+")
+
 def is_video_id_valid(video_id):
     # This prevents injecting extra query parameters in the url
     # and remove nasties like &list=
-    if '&' in video_id:
+    if not video_id_regex.match(video_id):
         return False, 'Invalid videoId'
 
     ydl_opts = {
