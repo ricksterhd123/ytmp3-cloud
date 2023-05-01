@@ -240,7 +240,8 @@ Resources:
       CorsConfiguration:
         AllowHeaders: ["*"]
         AllowMethods: ["OPTIONS", "GET"]
-        AllowOrigins: ["*"]
+        AllowOrigins: ["https://skywarriors.net"]
+        MaxAge: 300
       Version: v1.0.0
 
   Ytmp3ApiDispatcherIntegration:
