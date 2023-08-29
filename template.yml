@@ -327,11 +327,8 @@ Resources:
               - Effect: Allow
                 Action:
                   - "dynamodb:Scan"
-                  - "dynamodb:DeleteItem"
-                Resource: !Join
-                  - ""
-                  - - !GetAtt Ytmp3Db.Arn
-                    - "/*"
+                  - "dynamodb:BatchWriteItem"
+                Resource: !GetAtt Ytmp3Db.Arn
               - Effect: Allow
                 Action: "s3:DeleteObject"
                 Resource: !Join
@@ -349,6 +346,7 @@ Resources:
       Handler: main.handler
       Runtime: python3.10
       Timeout: 900
+      MemorySize: 1024
       Role: !GetAtt Ytmp3JanitorRole.Arn
       Environment:
         Variables:
