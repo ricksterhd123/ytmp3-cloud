@@ -6,7 +6,7 @@ import json
 from yt_dlp import YoutubeDL
 from datetime import datetime
 
-logger = logging.getLogger('mp3-downloader')
+logger = logging.getLogger('ytmp3-downloader')
 logger.setLevel(logging.INFO)
 
 AWS_DEFAULT_REGION = os.environ.get('AWS_DEFAULT_REGION')
@@ -26,12 +26,13 @@ if not YTMP3_DOWNLOADER_QUEUE_URL:
 if not YTMP3_DB_NAME:
     raise Exception('YTMP3_DB_NAME undefined')
 
+sqs_client = boto3.client('sqs')
+dyn_table = boto3.resource('dynamodb').Table(YTMP3_DB_NAME)
+s3_client = boto3.client('s3')
 
 def upload_file(file_name, bucket, object_name=None):
     if object_name is None:
         object_name = os.path.basename(file_name)
-
-    s3_client = boto3.client('s3')
     s3_client.upload_file(file_name, bucket, object_name)
 
 
@@ -39,8 +40,6 @@ def handler(sqs_event, context):
     logger.info(sqs_event)
     logger.info(context)
 
-    dyn_table = boto3.resource('dynamodb').Table(YTMP3_DB_NAME)
-    sqs_client = boto3.client('sqs')
     jobs = sqs_event['Records']
 
     for job in jobs:
