@@ -35,7 +35,7 @@ def get_expired_videos():
     return results.get("Items", [])
 
 def remove_expired_videos(videos):
-    video_ids = list(map(lambda video : video.get('videoId'), videos))[:1000]
+    video_ids = list(map(lambda video : video.get('videoId'), videos))
 
     s3_client.delete_objects(
         Bucket=YTMP3_STORE_BUCKET_NAME,
@@ -48,7 +48,8 @@ def remove_expired_videos(videos):
         for video_id in video_ids:
             batch.delete_item(Key={'videoId': video_id})
 
-def handler():
-    expired_videos = get_expired_videos()
-    logger.info(f"Cleaning up {len(expired_videos)} videos")
-    remove_expired_videos(expired_videos)
+def handler(event, context):
+    expired_videos = get_expired_videos()[:1000]
+    if len(expired_videos) > 0:
+        logger.info(f"Cleaning up {len(expired_videos)} videos")
+        remove_expired_videos(expired_videos)
