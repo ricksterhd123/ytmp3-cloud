@@ -304,6 +304,62 @@ Resources:
           - !Ref Ytmp3Api
           - "/*/GET/mp3/*"
 
+  Ytmp3JanitorRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: ytmp3-janitor-role-policy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: 
+                  - "dynamodb:Scan"
+                  - "dynamodb:DeleteItem"
+                Resource: !Join
+                  - ""
+                  - - !GetAtt Ytmp3Db.Arn
+                    - "/*"
+              - Effect: Allow
+                Action: "s3:DeleteObject"
+                Resource: !Join
+                  - ""
+                  - - !GetAtt Ytmp3Store.Arn
+                    - "/*"
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+
+  Ytmp3Janitor:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Zip
+      CodeUri: ytmp3-janitor/
+      Handler: main.handler
+      Runtime: python3.10
+      Timeout: 900
+      Role: !GetAtt Ytmp3JanitorRole.Arn
+      Environment:
+        Variables:
+          YTMP3_DB_NAME: !Ref Ytmp3DbName
+          YTMP3_STORE_BUCKET_NAME: !Ref Ytmp3StoreBucketName
+      Events:
+        Ytmp3JanitorSchedule:
+          Type: Schedule
+          Properties:
+            Schedule: 'rate(2 hours)'
+            Name: ytmp3-janitor-schedule
+            Description: YTMP3 Janitor Schedule
+            Enabled: true
+
 Outputs:
   Ytmp3ApiUrl:
     Description: URL of Ytmp3 REST API
