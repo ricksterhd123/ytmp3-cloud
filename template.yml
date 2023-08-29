@@ -33,6 +33,8 @@ Resources:
         AttributeName: ttl
         Enabled: True
       BillingMode: PROVISIONED
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: True
       ProvisionedThroughput:
         ReadCapacityUnits: 2
         WriteCapacityUnits: 2
@@ -134,7 +136,7 @@ Resources:
             Version: "2012-10-17"
             Statement:
               - Effect: Allow
-                Action: 
+                Action:
                   - "dynamodb:UpdateItem"
                 Resource: !GetAtt Ytmp3Db.Arn
               - Effect: Allow
@@ -195,7 +197,7 @@ Resources:
             Version: "2012-10-17"
             Statement:
               - Effect: Allow
-                Action: 
+                Action:
                   - "dynamodb:GetItem"
                   - "dynamodb:PutItem"
                   - "dynamodb:DeleteItem"
@@ -204,7 +206,7 @@ Resources:
                 Action: "sqs:SendMessage"
                 Resource: !GetAtt Ytmp3DownloaderQueue.Arn
               - Effect: Allow
-                Action: 
+                Action:
                   - "s3:GetObject"
                   - "s3:ListBucket"
                 Resource:
@@ -322,7 +324,7 @@ Resources:
             Version: "2012-10-17"
             Statement:
               - Effect: Allow
-                Action: 
+                Action:
                   - "dynamodb:Scan"
                   - "dynamodb:DeleteItem"
                 Resource: !Join
@@ -355,7 +357,7 @@ Resources:
         Ytmp3JanitorSchedule:
           Type: Schedule
           Properties:
-            Schedule: 'rate(2 hours)'
+            Schedule: "rate(2 hours)"
             Name: ytmp3-janitor-schedule
             Description: YTMP3 Janitor Schedule
             Enabled: true
@@ -364,7 +366,7 @@ Outputs:
   Ytmp3ApiUrl:
     Description: URL of Ytmp3 REST API
     Value: !Join
-      - ''
+      - ""
       - - "https://"
         - !Ref Ytmp3Api
         - ".execute-api."
@@ -373,7 +375,7 @@ Outputs:
   Ytmp3StoreUrl:
     Description: URL of Ytmp3 store S3 bucket
     Value: !Join
-      - ''
+      - ""
       - - "https://"
         - !Ref Ytmp3Store
         - ".s3."
