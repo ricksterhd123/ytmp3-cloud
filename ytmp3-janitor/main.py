@@ -52,5 +52,3 @@ def handler():
     expired_videos = get_expired_videos()
     logger.info(f"Cleaning up {len(expired_videos)} videos")
     remove_expired_videos(expired_videos)
-
-handler()
