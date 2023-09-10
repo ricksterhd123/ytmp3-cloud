@@ -20,4 +20,4 @@ config = {
 - `python main.py`
 
 ### Docker
-- Run the `Dockerfile``
+- Run the `Dockerfile`
